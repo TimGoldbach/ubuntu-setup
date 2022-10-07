@@ -1,6 +1,7 @@
 #!/bin/bash
 red=`tput setaf 1`
 green=`tput setaf 2`
+yellow=`tput setaf 3`
 reset=`tput sgr0`
 
 function menuMessage() {
@@ -29,18 +30,6 @@ function menuMessage() {
     3)
       cloneImportantGitRepositories;;
   esac
-
-#  if [ $input -eq 1 ]; then
-#    installStandardPrograms
-#  fi
-#
-#  if [ $input -eq 2 ]; then
-#    installWebDevDependencies
-#  fi
-#
-#  if [ $input -eq 3 ]; then
-#    cloneImportantGitRepositories
-#  fi
 }
 
 function installStandardPrograms() {
@@ -52,6 +41,15 @@ function installStandardPrograms() {
   sudo apt-get upgrade -y
   sudo apt-get autoremove --purge -y
   sudo apt-get install snapd -y
+
+  echo ""
+  echo "${green}Installing Terminal tooling...${reset}"
+  echo ""
+  sudo apt-get install zsh -y
+  sudo passwd root
+  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  sudo apt-get install nano
+  sudo apt-get install vim
 
   echo ""
   echo "${green}Installing Arduino IDE...${reset}"
@@ -112,6 +110,35 @@ function installStandardPrograms() {
   echo "${green}Standard programs has been installed.${reset}"
   echo ""
 
+  echo ""
+  read -p "${yellow}Do you want the Cronjobs to be installed? [y/n]${reset}" input
+
+  case $input in
+      y)
+        sudo crontab -l > cron_bkp
+        sudo echo "* * * * * su tim -c '/bin/wallpaper.sh'" >> cron_tmp
+        sudo echo "*/15 * * * * su tim -c '/bin/usage-analysis.sh'" >> cron_tmp
+        sudo crontab cron_tmp
+        sudo rm cron_tmp
+
+        echo "${green}Cronjobs succesfully installed!${reset}"
+        echo "${green}Trying to clone Scripts...${reset}"
+
+        if [ "$(which git)" == "/usr/bin/git" ]; then
+          mkdir -p /home/tim/projects/scripts
+          git clone git@github.com:TimGoldbach/ubuntu-usage-analysis.git /home/tim/projects/scripts
+          git clone git@github.com:TimGoldbach/ubuntu-wallpaper.git /home/tim/projects/scripts
+        fi
+
+        echo "${green}Scripts succesfully cloned!${reset}"
+
+        ;;
+      n)
+        echo "${green}No Cronjobs installed!${reset}"
+
+        ;;
+    esac
+
   menuMessage
 }
 
@@ -140,6 +167,11 @@ function installWebDevDependencies() {
   echo ""
   sudo apt-get install mysql -y
 
+  echo ""
+  echo "${green}Installing Nginx...${reset}"
+  echo ""
+  sudo apt-get install nginx -y
+
 #  sudo wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
 #  sudo sh -c 'echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
 #  sudo apt-get update
@@ -153,35 +185,38 @@ function cloneImportantGitRepositories() {
   echo "${green}Cloning the important repositories...${reset}"
   echo ""
 
-  mkdir projects && cd projects
+  mkdir "projects"
+  cd projects || exit
 
-  mkdir private
+  mkdir "private"
+  mkdir "school"
+  mkdir "scripts"
+  mkdir "shopware"
 
-  mkdir school && cd school
-  git clone https://github.com/relativvv/GrammatickMietTiedemann.git
+  cd school || exit
+  git clone git@github.com:relativvv/Turbo_-_Das-Autoquiz.git
+  git clone git@github.com:relativvv/GrammatickMietTiedemann.git
   cd ..
 
-  mkdir shopware && cd shopware
-  git clone https://gitlab.shopware.com/T.Goldbach/tkitchenimplementation.git
-  mkdir cloud && cd cloud
-  git clone https://gitlab.shopware.com/shopware/6/product/development.git
-  git checkout platform-fork
-  rm -rf platform
-  git clone https://gitlab.shopware.com/shopware/6/product/platform.git
-  cd platform
-  git checkout platform-fork
-  cd ../custom/plugins
-  git clone https://gitlab.shopware.com/shopware-cloud/rufus.git
-  cd ../../../../..
-  git clone https://gitlab.shopware.com/product/handbook.git
-  git clone https://gitlab.shopware.com/shopware/6/product/development.git
-  cd development
-  rm -rf platform
-  git clone https://gitlab.shopware.com/shopware/6/product/platform.git
-  cd ../..
+  cd scripts || exit
+  git clone git@github.com:TimGoldbach/ubuntu-usage-analysis.git
+  git clone git@github.com:TimGoldbach/ubuntu-wallpaper.git
+  git clone git@github.com:TimGoldbach/ubuntu-check-if-harddrive-is-encrypted.git
+  git clone git@github.com:TimGoldbach/ubuntu-setup.git
+  cd ..
 
-  mkdir setup
-#  git clone (this)
+  cd shopware || exit
+  mkdir cloud
+
+  git clone git@github.com:TimGoldbach/tkitchenimplementation.git
+  git clone git@github.com:shopware/6/product/platform.git
+  git clone git@gitlab.shopware.com:product/handbook.git
+
+  cd cloud || exit
+  git clone git@github.com:shopware/6/product/platform.git
+
+  cd platform/custom/plugins || exit
+  git clone https://gitlab.shopware.com/shopware-cloud/rufus.git
 
   menuMessage
 }
